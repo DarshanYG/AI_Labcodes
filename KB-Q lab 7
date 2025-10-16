@@ -1,0 +1,202 @@
+from itertools import product
+
+class PropositionalLogicKB:
+    def __init__(self):
+        self.kb = []
+        self.propositions = set()
+    
+    def add_formula(self, formula):
+        """Add a formula to the knowledge base"""
+        self.kb.append(formula)
+        self.propositions.update(self.extract_propositions(formula))
+    
+    def extract_propositions(self, formula):
+        """Extract all unique propositions from a formula"""
+        props = set()
+        for char in formula:
+            if char.isupper():
+                props.add(char)
+        return props
+    
+    def parse_formula(self, formula):
+        """Normalize formula syntax"""
+        formula = formula.replace(' ', '')
+        formula = formula.replace('=>', '>')
+        formula = formula.replace('->', '>')
+        formula = formula.replace('AND', '&')
+        formula = formula.replace('OR', '|')
+        formula = formula.replace('NOT', '~')
+        formula = formula.replace('<=>', '=')
+        return formula
+    
+    def evaluate(self, formula, assignment):
+        """Evaluate a formula given a truth assignment"""
+        expr = formula
+        
+        # Replace propositions with their truth values
+        for prop in sorted(assignment.keys(), reverse=True):
+            expr = expr.replace(prop, str(assignment[prop]))
+        
+        # Replace logical operators with Python operators
+        expr = expr.replace('>', '<=')  # Implication: A > B becomes (not A) or B
+        expr = expr.replace('True<=False', 'False')
+        expr = expr.replace('True<=True', 'True')
+        expr = expr.replace('False<=True', 'True')
+        expr = expr.replace('False<=False', 'True')
+        
+        expr = expr.replace('=', '==')  # Biconditional
+        expr = expr.replace('~', 'not ')
+        expr = expr.replace('&', ' and ')
+        expr = expr.replace('|', ' or ')
+        
+        try:
+            return eval(expr)
+        except:
+            return False
+    
+    def generate_truth_table(self, query):
+        """Generate complete truth table"""
+        # Get all propositions from KB and query
+        all_props = self.propositions.copy()
+        all_props.update(self.extract_propositions(query))
+        props_list = sorted(list(all_props))
+        
+        # Generate all possible truth assignments
+        n = len(props_list)
+        rows = []
+        
+        print("\n" + "="*100)
+        print("COMPLETE TRUTH TABLE")
+        print("="*100)
+        
+        # Header
+        header = " | ".join(props_list)
+        kb_headers = " | ".join([f"KB{i+1}" for i in range(len(self.kb))])
+        print(f"\n{header} | {kb_headers} | KB | Query | KB=>Q")
+        print("-" * 100)
+        
+        entails = True
+        counterexamples = []
+        
+        # Generate all combinations
+        for values in product([False, True], repeat=n):
+            assignment = dict(zip(props_list, values))
+            
+            # Evaluate each KB formula
+            kb_results = []
+            for formula in self.kb:
+                result = self.evaluate(formula, assignment)
+                kb_results.append(result)
+            
+            # KB is true if all formulas are true
+            kb_true = all(kb_results)
+            
+            # Evaluate query
+            query_result = self.evaluate(query, assignment)
+            
+            # Check entailment (KB => Query)
+            entailment = (not kb_true) or query_result
+            
+            if kb_true and not query_result:
+                entails = False
+                counterexamples.append(assignment)
+            
+            # Print row
+            vals_str = " | ".join([str(assignment[p])[0] for p in props_list])
+            kb_str = " | ".join([str(r)[0] for r in kb_results])
+            kb_conj = str(kb_true)[0]
+            query_str = str(query_result)[0]
+            entail_str = str(entailment)[0]
+            
+            marker = " ❌ COUNTEREXAMPLE" if (kb_true and not query_result) else ""
+            print(f"{vals_str} |  {kb_str}  | {kb_conj}  |  {query_str}   |  {entail_str}  {marker}")
+            
+            rows.append({
+                'assignment': assignment,
+                'kb_results': kb_results,
+                'kb_true': kb_true,
+                'query': query_result,
+                'entailment': entailment
+            })
+        
+        return rows, entails, counterexamples
+    
+    def check_entailment(self, query):
+        """Check if KB entails the query"""
+        query = self.parse_formula(query)
+        
+        print("\n" + "="*100)
+        print("KNOWLEDGE BASE:")
+        for i, formula in enumerate(self.kb, 1):
+            print(f"  {i}. {formula}")
+        print(f"\nQUERY: {query}")
+        
+        rows, entails, counterexamples = self.generate_truth_table(query)
+        
+        print("\n" + "="*100)
+        print("ENTAILMENT RESULT:")
+        print("="*100)
+        
+        if entails:
+            print("\n✓ KB ⊨ Query (ENTAILS)")
+            print("The knowledge base ENTAILS the query.")
+            print("In all models where KB is true, the query is also true.")
+        else:
+            print("\n✗ KB ⊭ Query (DOES NOT ENTAIL)")
+            print("The knowledge base DOES NOT entail the query.")
+            print(f"Found {len(counterexamples)} counterexample(s):")
+            for i, ce in enumerate(counterexamples, 1):
+                print(f"  {i}. {ce}")
+        
+        print("="*100 + "\n")
+        
+        return entails
+
+
+def main():
+    kb_system = PropositionalLogicKB()
+    
+    print("="*100)
+    print("PROPOSITIONAL LOGIC KNOWLEDGE BASE SYSTEM")
+    print("="*100)
+    print("\nOperators: => (implication), & (and), | (or), ~ (not), <=> (biconditional)")
+    print("Use uppercase letters for propositions (e.g., P, Q, R)")
+    print("\nExamples:")
+    print("  P => Q")
+    print("  P & Q => R")
+    print("  ~P | Q")
+    
+    # Input Knowledge Base
+    print("\n" + "-"*100)
+    print("ENTER KNOWLEDGE BASE:")
+    print("-"*100)
+    print("Enter formulas one per line. Type 'DONE' when finished.")
+    
+    while True:
+        formula = input("Formula: ").strip()
+        if formula.upper() == 'DONE':
+            break
+        if formula:
+            kb_system.add_formula(kb_system.parse_formula(formula))
+            print(f"  ✓ Added: {formula}")
+    
+    if not kb_system.kb:
+        print("\nNo formulas entered. Exiting.")
+        return
+    
+    # Input Query
+    print("\n" + "-"*100)
+    print("ENTER QUERY:")
+    print("-"*100)
+    query = input("Query: ").strip()
+    
+    if not query:
+        print("No query entered. Exiting.")
+        return
+    
+    # Check entailment
+    kb_system.check_entailment(query)
+
+
+if __name__ == "__main__":
+    main()
