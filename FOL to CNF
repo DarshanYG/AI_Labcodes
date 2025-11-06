@@ -1,0 +1,40 @@
+from sympy import symbols, Function, Not, Or, And, Implies, Equivalent
+from sympy.logic.boolalg import to_cnf
+from sympy.abc import x, y, z
+
+def convert_to_cnf(expression):
+    print("=== FOL → CNF Converter ===\n")
+    print(f"Original Expression:\n  {expression}\n")
+    
+    # Step 1: Eliminate implications (→) and equivalences (↔)
+    no_imp = expression.replace(Implies, lambda a, b: Or(Not(a), b))
+    no_equiv = no_imp.replace(Equivalent, lambda a, b: And(Implies(a,b), Implies(b,a)))
+    print(f"Step 1 - After removing → and ↔:\n  {no_equiv}\n")
+
+    # Step 2: Move NOT inwards (De Morgan + double negation)
+    print("Step 2 - Moving negations inward (handled automatically by CNF conversion)\n")
+
+    # Step 3: Convert to Conjunctive Normal Form
+    cnf_expr = to_cnf(no_equiv, simplify=True)
+    print(f"✅ Final CNF Expression:\n  {cnf_expr}\n")
+
+    return cnf_expr
+
+
+if __name__ == "__main__":
+    # Define predicate symbols or logical atoms
+    P = Function('P')
+    Q = Function('Q')
+    R = Function('R')
+
+    # Example 1: simple propositional form
+    expr1 = Implies(P(x), Q(x))  # P(x) → Q(x)
+    convert_to_cnf(expr1)
+
+    # Example 2: a more complex FOL-style formula
+    expr2 = Implies(And(P(x), Implies(Q(x), R(x))), R(x))
+    convert_to_cnf(expr2)
+
+    # Example 3: with OR, AND, and NOT
+    expr3 = Or(Not(P(x)), And(Q(x), R(x)))
+    convert_to_cnf(expr3)
