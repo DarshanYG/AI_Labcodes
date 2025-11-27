@@ -1,0 +1,77 @@
+import random
+import math
+
+def print_board(state):
+    n = len(state)
+    for row in range(n):
+        line = ""
+        for col in range(n):
+            if state[col] == row:
+                line += "Q "
+            else:
+                line += ". "
+        print(line)
+    print("State:", state)
+    print("-" * (2 * n))
+
+def attacking_pairs(state):
+    count = 0
+    n = len(state)
+    for i in range(n):
+        for j in range(i + 1, n):
+            if state[i] == state[j] or abs(state[i] - state[j]) == abs(i - j):
+                count += 1
+    return count
+
+def random_neighbor(state):
+    n = len(state)
+    neighbor = state[:]
+    col = random.randint(0, n - 1)
+    rows = list(range(n))
+    rows.remove(state[col])
+    neighbor[col] = random.choice(rows)
+    return neighbor
+
+def simulated_annealing(initial_state):
+    current = initial_state[:]
+    current_cost = attacking_pairs(current)
+    steps = 0
+    T = 1.0
+    T_min = 1e-5
+    alpha = 0.99
+
+    print("Initial board:")
+    print_board(current)
+
+    while T > T_min and current_cost > 0:
+        neighbor = random_neighbor(current)
+        neighbor_cost = attacking_pairs(neighbor)
+        delta = neighbor_cost - current_cost
+
+        if delta < 0 or random.uniform(0, 1) < math.exp(-delta / T):
+            if neighbor_cost < current_cost:
+                steps += 1
+                print(f"Step {steps}, Cost: {neighbor_cost}")
+                print_board(neighbor)
+            current = neighbor
+            current_cost = neighbor_cost
+
+        T *= alpha
+
+    print("Final board:")
+    print_board(current)
+    print(f"Total steps with improved cost: {steps}")
+
+if __name__ == "__main__":
+    N = 4
+    print(f"Enter the row positions for the queens in columns 0 to {N-1} (0-indexed, e.g., 1 3 0 2):")
+    user_input = input().strip()
+    try:
+        initial_state = list(map(int, user_input.split()))
+        if len(initial_state) != N or not all(0 <= x < N for x in initial_state):
+            raise ValueError
+    except Exception:
+        print("Invalid input. Please enter 4 integers between 0 and 3 separated by spaces.")
+        exit(1)
+
+    simulated_annealing(initial_state)
