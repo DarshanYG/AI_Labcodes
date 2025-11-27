@@ -1,0 +1,47 @@
+import heapq
+
+def astar(start, goal):
+    def h(state):
+        d = 0
+        for i,v in enumerate(state):
+            if v == 0: continue
+            gi = goal.index(v)
+            d += abs(gi//3 - i//3) + abs(gi%3 - i%3)
+        return d
+
+    def neighbors(state):
+        s = list(state)
+        i = s.index(0)
+        r, c = divmod(i, 3)
+        moves = []
+        if r > 0: moves.append(i-3)
+        if r < 2: moves.append(i+3)
+        if c > 0: moves.append(i-1)
+        if c < 2: moves.append(i+1)
+        res = []
+        for m in moves:
+            t = s[:]
+            t[i], t[m] = t[m], t[i]
+            res.append(tuple(t))
+        return res
+
+    pq = []
+    heapq.heappush(pq, (h(start), 0, start, []))
+    seen = set()
+
+    while pq:
+        f, g, state, path = heapq.heappop(pq)
+        if state in seen: 
+            continue
+        if state == goal:
+            return path + [state]
+        seen.add(state)
+        for nxt in neighbors(state):
+            if nxt not in seen:
+                heapq.heappush(pq, (g+1+h(nxt), g+1, nxt, path+[state]))
+
+start = (1,2,3,4,0,5,6,7,8)
+goal = (1,2,3,4,5,6,7,8,0)
+solution = astar(start, goal)
+for s in solution:
+    print(s)
