@@ -1,0 +1,76 @@
+def print_board(state):
+    N = len(state)
+    for r in range(N):
+        row = ""
+        for c in range(N):
+            if state[c] == r:
+                row += "Q "
+            else:
+                row += ". "
+        print(row)
+    print()
+
+def compute_conflicts(state):
+    N = len(state)
+    conflicts = 0
+    for i in range(N):
+        for j in range(i + 1, N):
+            if state[i] == state[j] or abs(state[i] - state[j]) == abs(i - j):
+                conflicts += 1
+    return conflicts
+
+def get_neighbors(state):
+    N = len(state)
+    neighbors = []
+    for col in range(N):
+        for row in range(N):
+            if state[col] != row:
+                neighbor = state.copy()
+                neighbor[col] = row
+                neighbors.append(neighbor)
+    return neighbors
+
+def hill_climbing(initial_state):
+    current = initial_state
+    steps = 0
+    print("Step", steps, "(Initial State):")
+    print_board(current)
+    while True:
+        neighbors = get_neighbors(current)
+        current_conflicts = compute_conflicts(current)
+        best_neighbor = current
+        best_conflicts = current_conflicts
+
+        for neighbor in neighbors:
+            neighbor_conflicts = compute_conflicts(neighbor)
+            if neighbor_conflicts < best_conflicts:
+                best_neighbor = neighbor
+                best_conflicts = neighbor_conflicts
+
+        if best_conflicts >= current_conflicts:
+            # Local minimum reached
+            break
+
+        current = best_neighbor
+        steps += 1
+        print(f"Step {steps}:")
+        print_board(current)
+
+        if best_conflicts == 0:
+            print("Goal reached in", steps, "steps!")
+            return
+
+    if compute_conflicts(current) == 0:
+        print("Goal reached in", steps, "steps!")
+    else:
+        print("Stuck in local minimum. No solution found from this initial state.")
+
+if __name__ == "__main__":
+    N = 4
+    print("Enter the initial queen positions (row number 0-3) for each column (space separated):")
+    user_input = input()
+    initial_state = list(map(int, user_input.strip().split()))
+    if len(initial_state) != N or not all(0 <= x < N for x in initial_state):
+        print("Invalid input! Enter exactly 4 numbers between 0 and 3.")
+    else:
+        hill_climbing(initial_state)
