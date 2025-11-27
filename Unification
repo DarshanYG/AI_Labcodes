@@ -1,0 +1,43 @@
+import itertools
+
+values = [True, False]
+
+def implies(a, b):
+    return (not a) or b
+
+def KB(A, B, C):
+    return (A or C) and (B or (not C))
+print(f"{'A':^3} {'B':^3} {'C':^3} {'A∨C':^5} {'B∨¬C':^6} {'KB':^4}")
+print("-" * 40)
+
+kb_models = []
+
+for A, B, C in itertools.product(values, repeat=3):
+    a_or_c = A or C
+    b_or_not_c = B or (not C)
+    kb_true = a_or_c and b_or_not_c
+
+    print(f"{A!s:^3} {B!s:^3} {C!s:^3} {a_or_c!s:^5} {b_or_not_c!s:^6} {kb_true!s:^4}")
+
+    if kb_true:
+        kb_models.append((A, B, C))
+
+def entails(query):
+    for (A, B, C) in kb_models:
+        if not query(A, B, C):
+            return False
+    return True
+
+def query_A(A, B, C): return A
+def query_B(A, B, C): return B
+def query_C(A, B, C): return C
+def query_A_implies_B(A, B, C): return implies(A, B)
+def query_C_implies_B(A, B, C): return implies(C, B)
+
+print("\nmodels where KB is True:", kb_models)
+print("\noutput")
+print("Does KB entail A?->", entails(query_A))
+print("Does KB entail B?->", entails(query_B))
+print("Does KB entail C?->", entails(query_C))
+print("Does KB entail (A → B)? ->", entails(query_A_implies_B))
+print("Does KB entail (C → B)? >", entails(query_C_implies_B))
